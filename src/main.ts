@@ -1,3 +1,4 @@
+// @ts-nocheck
 import './style.css';
 
 const app = document.querySelector('#app');
@@ -58,7 +59,6 @@ const audioControl = document.getElementById('audio-control');
 
 const GRID_CELL = 28;
 
-// Save Progress Logic
 let currentStage = parseInt(localStorage.getItem('3p_stage')) || 1;
 let stars = parseInt(localStorage.getItem('3p_stars')) || 0;
 let items = JSON.parse(localStorage.getItem('3p_items')) || { undo: 2, shuffle: 2, push: 2 };
@@ -75,12 +75,11 @@ let stashTiles = [];
 let timeElapsed = 0;
 let timerInterval = null;
 
-// Progession Emojis
 const emojiTypes = [
-    "🐦", "🐱", "🐭", // Stage 1 it will use up to 3
-    "🐐", "🐑", "🐄", // Medium stages
+    "🐦", "🐱", "🐭",
+    "🐐", "🐑", "🐄",
     "🐶", "🐢", "🐃", 
-    "🦥", "🦊", "🐸", "🐼", "🐵", "🦉" // Hard stages
+    "🦥", "🦊", "🐸", "🐼", "🐵", "🦉"
 ];
 
 let bgm = new Audio('/matchpic.mp3');
@@ -96,7 +95,7 @@ audioControl.onclick = () => {
 document.getElementById('btn-start').onclick = () => {
     introScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-    bgm.play().catch(e => console.log('BGM missing'));
+    bgm.play().catch(e => console.log('BGM wait'));
     initStage();
 };
 
@@ -106,6 +105,43 @@ document.getElementById('btn-next').onclick = () => {
     summaryScreen.classList.add('hidden');
     initStage();
 };
+
+function playWin() {
+    if(isMuted) return;
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'square'; o.frequency.setValueAtTime(400, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(800, ctx.currentTime + 0.1);
+        o.frequency.setValueAtTime(800, ctx.currentTime + 0.1);
+        o.frequency.exponentialRampToValueAtTime(1200, ctx.currentTime + 0.3);
+        g.gain.setValueAtTime(0.3, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+        o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.4);
+    } catch(e){}
+}
+function playFail() {
+    if(isMuted) return;
+    try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator(); const g = ctx.createGain();
+        o.type = 'sawtooth'; o.frequency.setValueAtTime(300, ctx.currentTime);
+        o.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.5);
+        g.gain.setValueAtTime(0.3, ctx.currentTime); g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        o.connect(g); g.connect(ctx.destination); o.start(); o.stop(ctx.currentTime + 0.5);
+    } catch(e){}
+}
+function createParticles(x, y) {
+    const colors = ['#ff3366', '#ffed8d', '#ffa530', '#fff'];
+    for(let i=0; i<15; i++) {
+        let p = document.createElement('div'); p.className = 'particle';
+        p.style.left = x + 'px'; p.style.top = y + 'px';
+        p.style.background = colors[Math.floor(Math.random()*colors.length)];
+        let angle = Math.random() * Math.PI * 2; let dist = 40 + Math.random() * 60;
+        p.style.setProperty('--tx', Math.cos(angle)*dist + 'px');
+        p.style.setProperty('--ty', Math.sin(angle)*dist + 'px');
+        document.body.appendChild(p); setTimeout(() => p.remove(), 600);
+    }
+}
 
 function playPop() {
     if(isMuted) return;
@@ -178,11 +214,9 @@ function initStage() {
         timerInfo.innerText = formatTime(timeElapsed);
     }, 1000);
     
-    // Stage 1: 8 triples. Next stages + 2 triples per stage.
     let triplesCount = 8 + Math.floor((currentStage - 1) * 2);
     let totalTiles = triplesCount * 3;
     
-    // Scale types: Stage 1 = 3 types. Stage 10+ = 15 types.
     let numTypes = Math.min(3 + Math.floor((currentStage-1)), emojiTypes.length);
     let activeTypes = emojiTypes.slice(0, numTypes);
     
@@ -193,13 +227,10 @@ function initStage() {
     }
     typesPool.sort(() => Math.random() - 0.5);
     
-    // Build centered structure using random spots from a safe 3D grid
     let maxZ = Math.min(5, 1 + Math.floor(currentStage/3));
     let validSpaces = [];
     
-    // Ensure all tiles spawn strictly inside x:[0,8] and y:[0,10] to prevent offscreen bugs
     for(let z=0; z<maxZ; z++) {
-        // Higher layers have smaller footprints to form a pyramid naturally
         let smin = z; 
         let smax = 8 - z;
         if(smax < smin) smax = smin;
@@ -230,7 +261,6 @@ function checkOverlaps() {
             if(t2.inTray || t2.inStash || t2.element === null || t1.id === t2.id) continue;
             
             if(t2.z > t1.z) {
-                // AABB check. Tile is 2x2 grid sizes. Add 1.9 to catch visual touch.
                 let overlapX = (t1.x < t2.x + 1.9) && (t1.x + 1.9 > t2.x);
                 let overlapY = (t1.y < t2.y + 1.9) && (t1.y + 1.9 > t2.y);
                 if(overlapX && overlapY) {
@@ -274,6 +304,8 @@ function checkMatches() {
         if(counts[type].length >= 3) {
             matchedType = type;
             playClearHit();
+            let rect = tray.getBoundingClientRect();
+            createParticles(rect.left + rect.width/2, rect.top + rect.height/2);
             break;
         }
     }
@@ -294,9 +326,7 @@ function checkMatches() {
         setTimeout(checkWin, 250);
     } else if(trayTiles.length === 7) {
         clearInterval(timerInterval);
-        setTimeout(() => { alert("Game Over! Tray is full.
-Tip: Use Push Out to make space!
-Try again!"); initStage(); }, 100);
+        setTimeout(() => { playFail(); alert("Game Over!"); currentStage=1; initStage(); }, 100);
     } else {
         checkWin();
     }
@@ -306,6 +336,7 @@ function checkWin() {
     const activeTiles = tiles.filter(t => !t.inTray && !t.inStash && t.element !== null);
     if(activeTiles.length === 0 && trayTiles.length === 0 && stashTiles.length === 0) {
         clearInterval(timerInterval);
+        playWin();
         setTimeout(showSummary, 100);
     }
 }
@@ -313,7 +344,6 @@ function checkWin() {
 function showSummary() {
     document.getElementById('win-time').innerText = 'Time: ' + formatTime(timeElapsed);
     
-    // Star Logic: Base 1, +1 if <3 min, +1 if <1.5 min
     let earned = 1;
     if(timeElapsed < 180) earned++;
     if(timeElapsed < 90) earned++;
@@ -379,9 +409,8 @@ function updateStashVisuals() {
 }
 
 function renderBoard() {
-    // Dynamic centering calculation based on content width (9 grid units max span)
     let offsetX = (window.innerWidth - 10 * GRID_CELL) / 2;
-    let offsetY = 110; // pushed down a bit to clear header safely
+    let offsetY = 110;
     if(offsetX < 10) offsetX = 10;
     
     tiles.forEach(tile => {
@@ -405,7 +434,6 @@ function renderBoard() {
     checkOverlaps();
 }
 
-// Boosters logic
 document.getElementById('btn-push').onclick = () => {
     if(items.push <= 0 || trayTiles.length === 0) return;
     const spaceLeft = 3 - stashTiles.length;
