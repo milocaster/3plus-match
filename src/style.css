@@ -1,0 +1,81 @@
+
+@import url("https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap");
+:root {
+  --bg-gradient: linear-gradient(to bottom, #fcebb6, #f0b06b);
+  --tray-bg: rgba(255, 255, 255, 0.45);
+  --tray-border: #d48a35;
+  --text: #5c3a21;
+}
+body {
+  margin: 0; padding: 0; font-family: "Fredoka", -apple-system, sans-serif;
+  background: var(--bg-gradient); color: var(--text);
+  overflow: hidden; user-select: none; touch-action: manipulation; height: 100svh;
+}
+#app { width: 100vw; height: 100svh; display: flex; flex-direction: column; position: relative; }
+
+.screen {
+  position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  background: var(--bg-gradient); z-index: 100;
+  align-items: center; justify-content: center;
+  transition: opacity 0.3s;
+}
+.screen.hidden { opacity: 0; pointer-events: none; }
+
+#game-screen { z-index: 10; display: flex; flex-direction: column; width: 100%; height: 100%; }
+
+.title { font-size: 3rem; font-weight: 700; color: #fff; text-shadow: 0 4px 6px rgba(0,0,0,0.2); margin-bottom: 2rem; text-align: center; }
+.btn-primary {
+  background: #ff3366; color: white; border: none; padding: 15px 40px;
+  font-size: 1.5rem; font-family: "Fredoka"; border-radius: 30px;
+  box-shadow: 0 6px 0 #cc0033, 0 8px 10px rgba(0,0,0,0.2);
+  cursor: pointer; transition: transform 0.1s;
+}
+.btn-primary:active { transform: translateY(4px); box-shadow: 0 2px 0 #cc0033; }
+
+header {
+  display: flex; justify-content: space-between; padding: 15px 20px;
+  font-size: 1.2rem; font-weight: 600; text-shadow: 0 2px 4px rgba(255,255,255,0.5); align-items: center;
+}
+#audio-control { cursor: pointer; font-size: 1.5rem; background: rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 10px; }
+.game-area { flex: 1; position: relative; width: 100%; overflow: hidden; }
+
+.tile {
+  box-sizing: border-box; position: absolute; width: 56px; height: 56px;
+  background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 34px; border: 2px solid #fff; box-shadow: 0 6px 0 #ccb096, 0 8px 10px rgba(0,0,0,0.15);
+  cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
+}
+.tile:active { box-shadow: 0 1px 0 #ccb096; transform: translateY(5px) scale(0.95); }
+.tile.locked { filter: brightness(0.7); box-shadow: 0 6px 0 #94806c; cursor: not-allowed; }
+
+.tray-container { height: 100px; width: 100%; display: flex; justify-content: center; align-items: center; padding-bottom: 20px; z-index: 10; }
+.tray {
+  width: calc(7 * 60px + 20px); height: 70px; background: var(--tray-bg); border: 4px solid var(--tray-border);
+  border-radius: 16px; display: flex; gap: 4px; padding: 5px; box-sizing: border-box;
+}
+.tray-slot { width: 56px; height: 56px; border-radius: 10px; background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+
+.stash-container {
+  position: absolute; right: 15px; bottom: 130px; background: var(--tray-bg); border: 4px solid #b3732a;
+  border-radius: 16px; padding: 5px; display: flex; flex-direction: column; gap: 4px; z-index: 20;
+}
+.boosters {
+  position: absolute; right: 20px; top: 35%; transform: translateY(-50%);
+  display: flex; flex-direction: column; gap: 20px; z-index: 20;
+}
+.booster-btn {
+  width: 50px; height: 50px; border-radius: 50%; background: linear-gradient(145deg, #ffed8d, #ffa530);
+  border: 3px solid #fff; box-shadow: 0 4px 0 #c2781a, 0 6px 8px rgba(0,0,0,0.2);
+  display: flex; align-items: center; justify-content: center; font-size: 24px; cursor: pointer; position: relative;
+}
+.booster-btn:active { transform: translateY(4px); box-shadow: 0 0 0 #c2781a; }
+.booster-count {
+  position: absolute; bottom: -5px; right: -5px; background: #ff3366; color: white;
+  border-radius: 50%; width: 24px; height: 24px; font-size: 14px; display: flex;
+  align-items: center; justify-content: center; border: 2px solid white;
+}
+#summary-content {
+  background: rgba(255,255,255,0.8); padding: 40px; border-radius: 20px;
+  text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
