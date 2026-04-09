@@ -260,7 +260,7 @@ function checkOverlaps() {
         for(let t2 of tiles) {
             if(t2.inTray || t2.inStash || t2.element === null || t1.id === t2.id) continue;
             
-            if(t2.z > t1.z) {
+            if(t2.z > t1.z || (t2.z === t1.z && t2.id > t1.id)) {
                 let overlapX = (t1.x < t2.x + 1.9) && (t1.x + 1.9 > t2.x);
                 let overlapY = (t1.y < t2.y + 1.9) && (t1.y + 1.9 > t2.y);
                 if(overlapX && overlapY) {
