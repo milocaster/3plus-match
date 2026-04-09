@@ -147,19 +147,29 @@ let tiles = [], trayTiles = [], stashTiles = [];
 let timeRemaining = 1200; 
 let timerInterval = null;
 
-let bgmNormal = new Audio(import.meta.env.BASE_URL + 'matchpic.mp3');
+let bgmNormalList = [
+    new Audio(import.meta.env.BASE_URL + 'matchpic.mp3'),
+    new Audio(import.meta.env.BASE_URL + 'matchpic4.mp3'),
+    new Audio(import.meta.env.BASE_URL + 'matchpic5.mp3'),
+    new Audio(import.meta.env.BASE_URL + 'matchpic6.mp3'),
+    new Audio(import.meta.env.BASE_URL + 'matchpic7.mp3')
+];
 let bgmEndless = new Audio(import.meta.env.BASE_URL + 'matchpic2.mp3');
 let bgmImpossible = new Audio(import.meta.env.BASE_URL + 'matchpic3.mp3');
-[bgmNormal, bgmEndless, bgmImpossible].forEach(a => a.loop = true);
 
-let activeBgm = bgmNormal;
+[...bgmNormalList, bgmEndless, bgmImpossible].forEach(a => { a.loop = true; });
+
+let activeBgm = bgmNormalList[0];
 let isMuted = false;
 
 function playAudio() {
-    [bgmNormal, bgmEndless, bgmImpossible].forEach(a => { a.pause(); a.currentTime = 0; });
+    [...bgmNormalList, bgmEndless, bgmImpossible].forEach(a => { a.pause(); a.currentTime = 0; });
     if(gameMode === 'endless') activeBgm = bgmEndless;
     else if(gameMode === 'impossible') activeBgm = bgmImpossible;
-    else activeBgm = bgmNormal;
+    else {
+        let bgmIndex = (currentStage - 1) % bgmNormalList.length;
+        activeBgm = bgmNormalList[bgmIndex];
+    }
     
     activeBgm.muted = isMuted;
     const playPromise = activeBgm.play();
@@ -170,7 +180,7 @@ function playAudio() {
 
 audioControl.onclick = () => {
     isMuted = !isMuted;
-    [bgmNormal, bgmEndless, bgmImpossible].forEach(a => a.muted = isMuted);
+    [...bgmNormalList, bgmEndless, bgmImpossible].forEach(a => a.muted = isMuted);
     audioControl.innerText = isMuted ? '🔇' : '🔊';
 };
 
