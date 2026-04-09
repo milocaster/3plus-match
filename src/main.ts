@@ -8,7 +8,8 @@ app.innerHTML = `
     <div class="stars-badge" id="intro-stars">⭐ 0</div>
     <div class="title">3Plus<br>Match Tile</div>
     <button class="btn-primary" id="btn-start">Stage Mode</button>
-    <button class="btn-alt" id="btn-endless">Hardcore Mode (20 Min) 🔥</button>
+    <button class="btn-alt" style="margin-bottom: 20px;" id="btn-endless">Endless Mode 🔥</button>
+    <button class="btn-black" id="btn-impossible">Impossible Mode 💀</button>
     <button class="btn-secondary" id="btn-shop">Reward Shop 🎁</button>
     <button class="btn-secondary" style="background:#888; box-shadow: 0 4px 0 #555; font-size:1rem; padding: 10px 20px; text-shadow:none; margin-top: 15px;" id="btn-reset">Reset Data</button>
 </div>
@@ -87,7 +88,6 @@ app.innerHTML = `
 </div>
 `;
 
-// Elements reference
 const introScreen = document.getElementById('intro-screen');
 const gameScreen = document.getElementById('game-screen');
 const summaryScreen = document.getElementById('summary-screen');
@@ -110,7 +110,7 @@ const GRID_CELL = 23;
 let currentStage = parseInt(localStorage.getItem('3p_stage')) || 1;
 let stars = parseInt(localStorage.getItem('3p_stars')) || 0;
 let items = JSON.parse(localStorage.getItem('3p_items')) || { undo: 2, shuffle: 2, push: 2 };
-let isEndless = false;
+let gameMode = 'normal'; 
 
 function saveProgress() {
     localStorage.setItem('3p_stage', currentStage.toString());
@@ -144,32 +144,57 @@ saveProgress();
 const emojis = ["🐦","🐱","🐭","🐐","🐑","🐄","🐶","🐢","🐃","🦥","🦊","🐸","🐼","🐵","🦉"];
 
 let tiles = [], trayTiles = [], stashTiles = [];
-let timeRemaining = 1200; // 20 mins for ALL modes
+let timeRemaining = 1200; 
 let timerInterval = null;
 
-let bgm = new Audio(import.meta.env.BASE_URL + 'matchpic.mp3');
-bgm.loop = true;
+let bgmNormal = new Audio(import.meta.env.BASE_URL + 'matchpic.mp3');
+let bgmEndless = new Audio(import.meta.env.BASE_URL + 'matchpic2.mp3');
+let bgmImpossible = new Audio(import.meta.env.BASE_URL + 'matchpic3.mp3');
+[bgmNormal, bgmEndless, bgmImpossible].forEach(a => a.loop = true);
+
+let activeBgm = bgmNormal;
 let isMuted = false;
+
+function playAudio() {
+    [bgmNormal, bgmEndless, bgmImpossible].forEach(a => { a.pause(); a.currentTime = 0; });
+    if(gameMode === 'endless') activeBgm = bgmEndless;
+    else if(gameMode === 'impossible') activeBgm = bgmImpossible;
+    else activeBgm = bgmNormal;
+    
+    activeBgm.muted = isMuted;
+    const playPromise = activeBgm.play();
+    if (playPromise !== undefined) {
+        playPromise.catch(error => console.log('Autoplay prevented'));
+    }
+}
 
 audioControl.onclick = () => {
     isMuted = !isMuted;
-    bgm.muted = isMuted;
+    [bgmNormal, bgmEndless, bgmImpossible].forEach(a => a.muted = isMuted);
     audioControl.innerText = isMuted ? '🔇' : '🔊';
 };
 
 document.getElementById('btn-start').onclick = () => {
-    isEndless = false;
+    gameMode = 'normal';
     introScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-    bgm.play().catch(e => console.log('BGM wait'));
+    playAudio();
     initStage();
 };
 
 document.getElementById('btn-endless').onclick = () => {
-    isEndless = true;
+    gameMode = 'endless';
     introScreen.classList.add('hidden');
     gameScreen.classList.remove('hidden');
-    bgm.play().catch(e => console.log('BGM wait'));
+    playAudio();
+    initStage();
+};
+
+document.getElementById('btn-impossible').onclick = () => {
+    gameMode = 'impossible';
+    introScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    playAudio();
     initStage();
 };
 
@@ -185,7 +210,14 @@ document.getElementById('btn-back-menu').onclick = () => {
 document.getElementById('btn-next').onclick = () => {
     saveProgress();
     summaryScreen.classList.add('hidden');
-    initStage();
+    if (gameMode === 'normal' && currentStage > 11) {
+        gameScreen.classList.add('hidden');
+        introScreen.classList.remove('hidden');
+        clearInterval(timerInterval);
+        activeBgm.pause();
+    } else {
+        initStage();
+    }
 };
 
 document.getElementById('btn-menu').onclick = () => {
@@ -193,7 +225,8 @@ document.getElementById('btn-menu').onclick = () => {
     gameScreen.classList.add('hidden');
     introScreen.classList.remove('hidden');
     clearInterval(timerInterval);
-    updateItemUI(); // Refresh state
+    activeBgm.pause();
+    updateItemUI(); 
 };
 
 document.getElementById('btn-reset').onclick = () => {
@@ -203,7 +236,7 @@ document.getElementById('btn-reset').onclick = () => {
         saveProgress();
         updateItemUI();
     }
-}
+};
 
 
 // Audio & Visuals
@@ -276,8 +309,13 @@ function updateItemUI() {
     document.getElementById('count-shuffle').innerText = items.shuffle;
     document.getElementById('count-push').innerText = items.push;
     starTotal.innerText = "⭐ " + stars;
-    if(!isEndless) {
-        document.getElementById('btn-start').innerText = "Continue Stage " + currentStage;
+    
+    if (gameMode === 'normal') {
+        if (currentStage > 11) {
+            document.getElementById('btn-start').innerText = "Game Cleared!";
+        } else {
+            document.getElementById('btn-start').innerText = "Continue Stage " + currentStage;
+        }
     }
 }
 
@@ -286,19 +324,20 @@ function initStage() {
     tiles = []; trayTiles = []; stashTiles = [];
     gameArea.innerHTML = '';
     
-    stageInfo.innerText = isEndless ? 'HARDCORE' : ('Stage: ' + currentStage);
+    if(gameMode === 'impossible') stageInfo.innerText = 'IMPOSSIBLE';
+    else if(gameMode === 'endless') stageInfo.innerText = 'ENDLESS';
+    else stageInfo.innerText = 'Stage: ' + currentStage;
     
     tray.innerHTML = '';
     for(let i=0; i<7; i++) tray.innerHTML += "<div class='tray-slot'></div>";
     stashTray.innerHTML = '';
     for(let i=0; i<3; i++) stashTray.innerHTML += "<div class='tray-slot'></div>";
     
-    // Countdown Timer Logic
     clearInterval(timerInterval);
-    timeRemaining = 1200; // 20:00 limit for BOTH modes
+    timeRemaining = 1200; 
     timerInfo.innerText = formatTime(timeRemaining);
     progressBar.style.width = '100%';
-    progressBar.style.background = '#4facfe'; // reset to stable blue
+    progressBar.style.background = '#4facfe'; 
     
     timerInterval = setInterval(() => {
         timeRemaining--;
@@ -306,19 +345,23 @@ function initStage() {
         
         let pct = (timeRemaining / 1200) * 100;
         progressBar.style.width = pct + '%';
-        if(timeRemaining < 240) progressBar.style.background = '#ff0000'; // red when < 4 mins
-        else if(timeRemaining < 720) progressBar.style.background = '#ffb347'; // orange when < 12 mins
+        if(timeRemaining < 240) progressBar.style.background = '#ff0000'; 
+        else if(timeRemaining < 720) progressBar.style.background = '#ffb347'; 
         
         if(timeRemaining <= 0) {
             clearInterval(timerInterval);
             playFail();
+            activeBgm.pause();
             showAlert('Time Out!', 'เวลาหมด 20 นาทีแล้ว! คุณไม่ได้รับดาว');
-            if(isEndless) { gameScreen.classList.add('hidden'); introScreen.classList.remove('hidden'); }
-            else { initStage(); } // auto restart normal stage
+            if(gameMode !== 'normal') { gameScreen.classList.add('hidden'); introScreen.classList.remove('hidden'); }
+            else { initStage(); playAudio(); } 
         }
     }, 1000);
     
-    let simulatedStage = isEndless ? 33 : currentStage;
+    let simulatedStage = currentStage;
+    if(gameMode === 'endless') simulatedStage = 12;
+    if(gameMode === 'impossible') simulatedStage = 33;
+    
     let triplesCount = 8 + Math.floor((simulatedStage - 1) * 2);
     let totalTiles = triplesCount * 3;
     
@@ -351,7 +394,7 @@ function initStage() {
     let idCounter = 0;
     for(let i=0; i<totalTiles; i++) {
         let sp = validSpaces[i % validSpaces.length];
-        tiles.push({ id: idCounter++, type: typesPool.pop(), x: sp.x, y: sp.y, z: sp.z, inTray: false, inStash: false });
+        tiles.push({ id: idCounter++, type: typesPool.pop(), x: sp.x, y: sp.y, z: sp.z, inTray: false, inStash: false, isDead: false });
     }
 
     renderBoard();
@@ -359,11 +402,11 @@ function initStage() {
 
 function checkOverlaps() {
     tiles.forEach(t1 => {
-        if(t1.inTray || t1.inStash || t1.element === null) return;
+        if(t1.inTray || t1.inStash || t1.isDead || t1.element === null) return;
         
         let isLocked = false;
         for(let t2 of tiles) {
-            if(t2.inTray || t2.inStash || t2.element === null || t1.id === t2.id) continue;
+            if(t2.inTray || t2.inStash || t2.isDead || t2.element === null || t1.id === t2.id) continue;
             
             if(t2.z > t1.z || (t2.z === t1.z && t2.id > t1.id)) {
                 let overlapX = (t1.x < t2.x + 1.9) && (t1.x + 1.9 > t2.x);
@@ -409,18 +452,21 @@ function checkMatches() {
         trayTiles = trayTiles.filter(t => t.type !== matchedType);
         tiles.forEach(t => {
              if(t.type === matchedType && (t.inTray || t.inStash) && t.element) {
+                 t.isDead = true; 
                  t.element.style.transition = 'transform 0.15s'; t.element.style.transform = 'scale(0)';
                  setTimeout(() => { if(t.element) t.element.remove(); t.element = null; }, 150);
                  t.inTray = false; t.inStash = false;
              }
         });
-        setTimeout(updateTrayVisuals, 150); setTimeout(checkWin, 250);
+        setTimeout(() => { updateTrayVisuals(); checkOverlaps(); }, 150); 
+        setTimeout(checkWin, 250);
     } else if(trayTiles.length === 7) {
         clearInterval(timerInterval);
+        activeBgm.pause();
         setTimeout(() => { 
             playFail(); showAlert('Game Over!', 'ถาดเต็มแล้ว ลองใหม่อีกครั้งนะ!'); 
-            if(isEndless) { gameScreen.classList.add('hidden'); introScreen.classList.remove('hidden'); }
-            else { initStage(); } // auto restart normal stage
+            if(gameMode !== 'normal') { gameScreen.classList.add('hidden'); introScreen.classList.remove('hidden'); }
+            else { initStage(); playAudio(); } 
         }, 100);
     } else {
         checkWin();
@@ -428,36 +474,47 @@ function checkMatches() {
 }
 
 function checkWin() {
-    const activeTiles = tiles.filter(t => !t.inTray && !t.inStash && t.element !== null);
+    const activeTiles = tiles.filter(t => !t.inTray && !t.inStash && !t.isDead && t.element !== null);
     if(activeTiles.length === 0 && trayTiles.length === 0 && stashTiles.length === 0) {
         clearInterval(timerInterval);
+        activeBgm.pause();
         playWin();
-        if(!isEndless) currentStage++; // INCREMENT HERE SO MAIN MENU 'CONTINUE' WORKS!
+        if(gameMode === 'normal' && currentStage < 11) currentStage++; 
         saveProgress();
         setTimeout(showSummary, 100);
     }
 }
 
 function showSummary() {
-    document.getElementById('btn-next').innerText = isEndless ? "Play Again" : "Next Stage";
+    if(gameMode === 'normal') {
+        if(currentStage > 11) document.getElementById('btn-next').innerText = "Finish";
+        else document.getElementById('btn-next').innerText = "Next Stage";
+    } else {
+        document.getElementById('btn-next').innerText = "Play Again";
+    }
     
     let earned = 0;
     document.getElementById('win-time').innerText = 'Time Left: ' + formatTime(timeRemaining);
     
-    if(isEndless) {
-        document.getElementById('win-text').innerText = "HARDCORE CLEAR!";
+    if(gameMode === 'impossible') {
+        document.getElementById('win-text').innerText = "IMPOSSIBLE CLEAR!";
+        if(timeRemaining >= 720) earned = 33;
+        else if(timeRemaining >= 240) earned = 28;
+        else earned = 13;
+    } else if(gameMode === 'endless') {
+        document.getElementById('win-text').innerText = "ENDLESS CLEAR!";
         if(timeRemaining >= 720) earned = 33;
         else if(timeRemaining >= 240) earned = 28;
         else earned = 13;
     } else {
-        document.getElementById('win-text').innerText = "Stage Clear!";
+        document.getElementById('win-text').innerText = currentStage > 11 ? "ALL NORMAL STAGES CLEARED!" : "Stage Clear!";
         if(timeRemaining >= 720) earned = 3;
         else if(timeRemaining >= 240) earned = 2;
         else earned = 1;
     }
     
     stars += earned;
-    document.getElementById('win-stars').innerText = "⭐ ".repeat(Math.min(10, earned)) + (earned > 10 ? ` x${earned}` : '');
+    document.getElementById('win-stars').innerText = "⭐ ".repeat(Math.min(10, earned)) + (earned > 10 ? ` x\${earned}` : '');
     
     const dropTypes = ['undo', 'shuffle', 'push'];
     const names = {'undo':'Undo (↩️)', 'shuffle':'Shuffle (🌀)', 'push':'Push Out (⬆️)'};
@@ -535,7 +592,7 @@ document.getElementById('btn-undo').onclick = () => {
     updateTrayVisuals(); checkOverlaps();
 };
 document.getElementById('btn-shuffle').onclick = () => {
-    const activeTiles = tiles.filter(t => !t.inTray && !t.inStash && t.element !== null);
+    const activeTiles = tiles.filter(t => !t.inTray && !t.inStash && !t.isDead && t.element !== null);
     if(items.shuffle <= 0 || activeTiles.length === 0) return;
     items.shuffle--; updateItemUI(); saveProgress();
     const types = activeTiles.map(t => t.type); types.sort(() => Math.random() - 0.5);
