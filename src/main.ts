@@ -227,6 +227,7 @@ document.getElementById('btn-next').onclick = () => {
         activeBgm.pause();
     } else {
         initStage();
+        playAudio();
     }
 };
 
