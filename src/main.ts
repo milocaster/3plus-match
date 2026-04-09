@@ -10,6 +10,7 @@ app.innerHTML = `
     <button class="btn-primary" id="btn-start">Stage Mode</button>
     <button class="btn-alt" id="btn-endless">Hardcore Mode (20 Min) 🔥</button>
     <button class="btn-secondary" id="btn-shop">Reward Shop 🎁</button>
+    <button class="btn-secondary" style="background:#888; box-shadow: 0 4px 0 #555; font-size:1rem; padding: 10px 20px; text-shadow:none; margin-top: 15px;" id="btn-reset">Reset Data</button>
 </div>
 
 <div class="screen hidden" id="shop-screen">
@@ -182,7 +183,6 @@ document.getElementById('btn-back-menu').onclick = () => {
 };
 
 document.getElementById('btn-next').onclick = () => {
-    if(!isEndless) currentStage++;
     saveProgress();
     summaryScreen.classList.add('hidden');
     initStage();
@@ -193,8 +193,18 @@ document.getElementById('btn-menu').onclick = () => {
     gameScreen.classList.add('hidden');
     introScreen.classList.remove('hidden');
     clearInterval(timerInterval);
-    saveProgress();
+    updateItemUI(); // Refresh state
 };
+
+document.getElementById('btn-reset').onclick = () => {
+    if(confirm('Are you sure you want to completely erase all stars, items, and start back at Stage 1?')) {
+        localStorage.clear();
+        currentStage = 1; stars = 0; items = { undo: 2, shuffle: 2, push: 2 };
+        saveProgress();
+        updateItemUI();
+    }
+}
+
 
 // Audio & Visuals
 function playWin() {
@@ -266,7 +276,9 @@ function updateItemUI() {
     document.getElementById('count-shuffle').innerText = items.shuffle;
     document.getElementById('count-push').innerText = items.push;
     starTotal.innerText = "⭐ " + stars;
-    if(!isEndless) document.getElementById('btn-start').innerText = "Continue Stage " + currentStage;
+    if(!isEndless) {
+        document.getElementById('btn-start').innerText = "Continue Stage " + currentStage;
+    }
 }
 
 function initStage() {
@@ -420,6 +432,8 @@ function checkWin() {
     if(activeTiles.length === 0 && trayTiles.length === 0 && stashTiles.length === 0) {
         clearInterval(timerInterval);
         playWin();
+        if(!isEndless) currentStage++; // INCREMENT HERE SO MAIN MENU 'CONTINUE' WORKS!
+        saveProgress();
         setTimeout(showSummary, 100);
     }
 }
