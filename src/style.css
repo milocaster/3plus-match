@@ -53,6 +53,14 @@ header {
   display: flex; justify-content: space-between; padding: 15px 20px;
   font-size: 1.2rem; font-weight: 600; text-shadow: 0 2px 4px rgba(255,255,255,0.5); align-items: center;
 }
+#progress-bar-container {
+  width: 100%; height: 8px; background: rgba(0,0,0,0.1); box-shadow: inset 0 1px 3px rgba(0,0,0,0.2);
+}
+#progress-bar {
+  height: 100%; width: 100%; background: #4facfe;
+  transition: width 1s linear, background-color 0.5s;
+}
+
 #audio-control { cursor: pointer; font-size: 1.5rem; background: rgba(255,255,255,0.3); padding: 5px 10px; border-radius: 10px; }
 .game-area { flex: 1; position: relative; width: 100%; overflow: hidden; }
 
@@ -68,9 +76,9 @@ header {
 .tray-container { height: 100px; width: 100%; display: flex; justify-content: center; align-items: center; padding-bottom: 20px; z-index: 10; }
 .tray {
   width: max-content; height: auto; background: var(--tray-bg); border: 4px solid var(--tray-border);
-  border-radius: 16px; display: flex; gap: 4px; padding: 5px; box-sizing: border-box;
+  border-radius: 16px; display: flex; gap: 4px; padding: 6px; box-sizing: border-box;
 }
-.tray-slot { width: 46px; height: 46px; border-radius: 10px; background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+.tray-slot { width: 46px; height: 46px; border-radius: 8px; background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
 
 .stash-container {
   position: absolute; right: 15px; bottom: 130px; background: var(--tray-bg); border: 4px solid #b3732a;

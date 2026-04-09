@@ -52,7 +52,7 @@ app.innerHTML = `
 <div class="screen hidden" id="summary-screen">
     <div class="modal-content">
         <h1 id="win-text">Stage Clear!</h1>
-        <p id="win-time" style="font-size: 1.2rem; color: #555;">Time: 00:00</p>
+        <p id="win-time" style="font-size: 1.2rem; color: #555;">Time Left: 00:00</p>
         <div id="win-stars" style="font-size:2rem; margin:10px 0;">⭐ ⭐ ⭐</div>
         <p id="gacha-drop" style="color:#ff3366; font-weight:bold; margin-bottom: 20px;"></p>
         <button class="btn-primary" id="btn-next">Next Stage</button>
@@ -61,6 +61,7 @@ app.innerHTML = `
 </div>
 
 <div id="game-screen" class="hidden">
+    <div id="progress-bar-container"><div id="progress-bar"></div></div>
     <header>
         <div id="audio-control" title="Toggle Sound">🔊</div>
         <div id="stage-info">Stage: 1</div>
@@ -98,13 +99,13 @@ const gameArea = document.getElementById('game-area');
 const tray = document.getElementById('tray');
 const stashTray = document.getElementById('stash-tray');
 const timerInfo = document.getElementById('timer-info');
+const progressBar = document.getElementById('progress-bar');
 const stageInfo = document.getElementById('stage-info');
 const starTotal = document.getElementById('star-total');
 const audioControl = document.getElementById('audio-control');
 
 const GRID_CELL = 23;
 
-// Local Storage & State
 let currentStage = parseInt(localStorage.getItem('3p_stage')) || 1;
 let stars = parseInt(localStorage.getItem('3p_stars')) || 0;
 let items = JSON.parse(localStorage.getItem('3p_items')) || { undo: 2, shuffle: 2, push: 2 };
@@ -138,13 +139,11 @@ document.getElementById('btn-close-alert').onclick = () => {
     alertModal.classList.add('hidden');
 }
 
-// Update menu labels immediately
 saveProgress();
 const emojis = ["🐦","🐱","🐭","🐐","🐑","🐄","🐶","🐢","🐃","🦥","🦊","🐸","🐼","🐵","🦉"];
 
 let tiles = [], trayTiles = [], stashTiles = [];
-let timeElapsed = 0;
-let timeRemaining = 1200; // 20 mins for Endless
+let timeRemaining = 1200; // 20 mins for ALL modes
 let timerInterval = null;
 
 let bgm = new Audio(import.meta.env.BASE_URL + 'matchpic.mp3');
@@ -157,7 +156,6 @@ audioControl.onclick = () => {
     audioControl.innerText = isMuted ? '🔇' : '🔊';
 };
 
-// Menu Routing
 document.getElementById('btn-start').onclick = () => {
     isEndless = false;
     introScreen.classList.add('hidden');
@@ -187,7 +185,6 @@ document.getElementById('btn-next').onclick = () => {
     if(!isEndless) currentStage++;
     saveProgress();
     summaryScreen.classList.add('hidden');
-    // If endless and clicked "Play Again", just re-init. Next button text will be "Play Again" in endless.
     initStage();
 };
 
@@ -284,32 +281,31 @@ function initStage() {
     stashTray.innerHTML = '';
     for(let i=0; i<3; i++) stashTray.innerHTML += "<div class='tray-slot'></div>";
     
-    // Timer Logic
+    // Countdown Timer Logic
     clearInterval(timerInterval);
-    if(isEndless) {
-        timeRemaining = 1200; // 20:00
-        timerInfo.innerText = formatTime(timeRemaining);
-        timerInterval = setInterval(() => {
-            timeRemaining--;
-            timerInfo.innerText = formatTime(timeRemaining);
-            if(timeRemaining <= 0) {
-                clearInterval(timerInterval);
-                playFail();
-                showAlert('Time Out!', 'เวลาหมด 20 นาทีแล้ว! คุณไม่ได้รับดาว');
-                gameScreen.classList.add('hidden');
-                introScreen.classList.remove('hidden');
-            }
-        }, 1000);
-    } else {
-        timeElapsed = 0;
-        timerInfo.innerText = formatTime(0);
-        timerInterval = setInterval(() => {
-            timeElapsed++;
-            timerInfo.innerText = formatTime(timeElapsed);
-        }, 1000);
-    }
+    timeRemaining = 1200; // 20:00 limit for BOTH modes
+    timerInfo.innerText = formatTime(timeRemaining);
+    progressBar.style.width = '100%';
+    progressBar.style.background = '#4facfe'; // reset to stable blue
     
-    // Board Generation Logic
+    timerInterval = setInterval(() => {
+        timeRemaining--;
+        timerInfo.innerText = formatTime(timeRemaining);
+        
+        let pct = (timeRemaining / 1200) * 100;
+        progressBar.style.width = pct + '%';
+        if(timeRemaining < 240) progressBar.style.background = '#ff0000'; // red when < 4 mins
+        else if(timeRemaining < 720) progressBar.style.background = '#ffb347'; // orange when < 12 mins
+        
+        if(timeRemaining <= 0) {
+            clearInterval(timerInterval);
+            playFail();
+            showAlert('Time Out!', 'เวลาหมด 20 นาทีแล้ว! คุณไม่ได้รับดาว');
+            if(isEndless) { gameScreen.classList.add('hidden'); introScreen.classList.remove('hidden'); }
+            else { initStage(); } // auto restart normal stage
+        }
+    }, 1000);
+    
     let simulatedStage = isEndless ? 33 : currentStage;
     let triplesCount = 8 + Math.floor((simulatedStage - 1) * 2);
     let totalTiles = triplesCount * 3;
@@ -329,7 +325,6 @@ function initStage() {
     
     for(let z=0; z<maxZ; z++) {
         let smin = parseInt(z/2); 
-        // to prevent falling off for huge stages, clamp bounds strictly
         let smaxX = 8 - parseInt(z/2);
         let smaxY = 10 - parseInt(z/2);
         if(smaxX < smin) smaxX = smin;
@@ -343,7 +338,7 @@ function initStage() {
     
     let idCounter = 0;
     for(let i=0; i<totalTiles; i++) {
-        let sp = validSpaces[i % validSpaces.length]; // cycle spaces if more tiles than spaces
+        let sp = validSpaces[i % validSpaces.length];
         tiles.push({ id: idCounter++, type: typesPool.pop(), x: sp.x, y: sp.y, z: sp.z, inTray: false, inStash: false });
     }
 
@@ -378,11 +373,9 @@ function checkOverlaps() {
 
 function moveToTray(tile) {
     if(trayTiles.length >= 7) return;
-    
     playPop();  tile.inTray = true;
     trayTiles.push(tile); trayTiles.sort((a,b) => a.type.localeCompare(b.type));
     updateTrayVisuals(); checkOverlaps();
-    
     setTimeout(checkMatches, 200);
 }
 
@@ -435,18 +428,18 @@ function showSummary() {
     document.getElementById('btn-next').innerText = isEndless ? "Play Again" : "Next Stage";
     
     let earned = 0;
+    document.getElementById('win-time').innerText = 'Time Left: ' + formatTime(timeRemaining);
+    
     if(isEndless) {
         document.getElementById('win-text').innerText = "HARDCORE CLEAR!";
-        document.getElementById('win-time').innerText = 'Time Left: ' + formatTime(timeRemaining);
-        if(timeRemaining >= 720) earned = 33; // finished within 8 mins
-        else if(timeRemaining >= 240) earned = 28; // finished within 16 mins
-        else earned = 13; // finished within 20 mins
+        if(timeRemaining >= 720) earned = 33;
+        else if(timeRemaining >= 240) earned = 28;
+        else earned = 13;
     } else {
         document.getElementById('win-text').innerText = "Stage Clear!";
-        document.getElementById('win-time').innerText = 'Time: ' + formatTime(timeElapsed);
-        earned = 1;
-        if(timeElapsed < 180) earned++;
-        if(timeElapsed < 90) earned++;
+        if(timeRemaining >= 720) earned = 3;
+        else if(timeRemaining >= 240) earned = 2;
+        else earned = 1;
     }
     
     stars += earned;
