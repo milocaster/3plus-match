@@ -102,7 +102,7 @@ const stageInfo = document.getElementById('stage-info');
 const starTotal = document.getElementById('star-total');
 const audioControl = document.getElementById('audio-control');
 
-const GRID_CELL = 28;
+const GRID_CELL = 23;
 
 // Local Storage & State
 let currentStage = parseInt(localStorage.getItem('3p_stage')) || 1;
@@ -147,7 +147,7 @@ let timeElapsed = 0;
 let timeRemaining = 1200; // 20 mins for Endless
 let timerInterval = null;
 
-let bgm = new Audio('/matchpic.mp3');
+let bgm = new Audio(import.meta.env.BASE_URL + 'matchpic.mp3');
 bgm.loop = true;
 let isMuted = false;
 

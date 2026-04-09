@@ -57,9 +57,9 @@ header {
 .game-area { flex: 1; position: relative; width: 100%; overflow: hidden; }
 
 .tile {
-  box-sizing: border-box; position: absolute; width: 56px; height: 56px;
-  background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center;
-  font-size: 34px; border: 2px solid #fff; box-shadow: 0 6px 0 #ccb096, 0 8px 10px rgba(0,0,0,0.15);
+  box-sizing: border-box; position: absolute; width: 46px; height: 46px;
+  background: #fff; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+  font-size: 26px; border: 2px solid #fff; box-shadow: 0 6px 0 #ccb096, 0 8px 10px rgba(0,0,0,0.15);
   cursor: pointer; transition: transform 0.1s, box-shadow 0.1s;
 }
 .tile:active { box-shadow: 0 1px 0 #ccb096; transform: translateY(5px) scale(0.95); }
@@ -67,10 +67,10 @@ header {
 
 .tray-container { height: 100px; width: 100%; display: flex; justify-content: center; align-items: center; padding-bottom: 20px; z-index: 10; }
 .tray {
-  width: calc(7 * 60px + 20px); height: 70px; background: var(--tray-bg); border: 4px solid var(--tray-border);
+  width: max-content; height: auto; background: var(--tray-bg); border: 4px solid var(--tray-border);
   border-radius: 16px; display: flex; gap: 4px; padding: 5px; box-sizing: border-box;
 }
-.tray-slot { width: 56px; height: 56px; border-radius: 10px; background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
+.tray-slot { width: 46px; height: 46px; border-radius: 10px; background: rgba(0,0,0,0.1); box-shadow: inset 0 2px 4px rgba(0,0,0,0.2); }
 
 .stash-container {
   position: absolute; right: 15px; bottom: 130px; background: var(--tray-bg); border: 4px solid #b3732a;
